@@ -11,7 +11,7 @@ This repository demonstrates the implementation of A* algorithm to compute an op
 - [Assumptions](#assumptions)
 - [Features](#features)
 - [Setup Instructions](#setup-instructions)
-- [Implementation Details](#implementation-details)
+- [Implementation Details with Pseudocode](#implementation-details-with-pseudocode)
 - [Results](#results)
 
 ## Introduction
@@ -51,5 +51,51 @@ git clone https://github.com/ShauryaJain03/Peppermint-Robotics-Assignment.git
 cd Peppermint-Robotics-Assignment/
 python3 astar.py
 ```
+## Implementation Details with Pseudocode
+
+The A* algorithm computes the shortest path by evaluating cells based on the function: f(n)=g(n)+h(n)
+
+Where
+
+g(n) → cost from start to node
+
+h(n) → heuristic estimate from node to goal (Manhattan distance)
+
+f(n) → priority score used to choose the next node to explore
+
+The algorithm uses a priority queue (open_list) to always expand the most promising node first.
+Movement is allowed in 4 directions: up, down, left, right.
+
+
+This is the pseudocode for the algorithm
+```
+function A*(start, goal, grid):
+    open_list = priority queue ordered by f-score
+    push start into open_list with f = 0
+
+    g_score[start] = 0
+    parent = empty map
+
+    while open_list not empty:
+        current = node with smallest f from open_list
+
+        if current == goal:
+            return reconstruct_path(parent, current)
+
+        for each neighbor of current in (up, down, left, right):
+            if neighbor is within grid bounds AND grid[neighbor] == 0:
+                tentative_g = g_score[current] + 1
+
+                if neighbor not visited OR tentative_g < g_score[neighbor]:
+                    g_score[neighbor] = tentative_g
+                    f = tentative_g + heuristic(neighbor, goal)
+                    push neighbor to open_list
+                    parent[neighbor] = current
+
+    return None  
+
+```
+## Results
+
 
 

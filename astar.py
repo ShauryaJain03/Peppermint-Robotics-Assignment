@@ -1,123 +1,95 @@
-"""
-Very simple A* implementation on a 2D grid.
+import heapq
 
-Assumptions:
-- 0 = free cell
-- 1 = obstacle
-- Movement allowed: up, down, left, right (no diagonals)
-- Cost of each move = 1
-- Heuristic: Manhattan distance
-"""
-
-def manhattan(a, b):
-    """Heuristic: Manhattan distance between two (row, col) points."""
+#Heuristic function to calculate h: Manhattan distance
+def heuristic(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
-
-def get_neighbors(cell, grid):
-    """Return valid 4-connected neighbors (up, down, left, right)."""
+#Get 4 connected neighbors, assuming movement is allowed only in 4 directions (up,down,left,right)
+def get_neighbors(cell, grid_map):
     (r, c) = cell
     neighbors = []
-    rows = len(grid)
-    cols = len(grid[0])
-
-    # Up
-    if r - 1 >= 0 and grid[r - 1][c] == 0:
-        neighbors.append((r - 1, c))
-    # Down
-    if r + 1 < rows and grid[r + 1][c] == 0:
-        neighbors.append((r + 1, c))
-    # Left
-    if c - 1 >= 0 and grid[r][c - 1] == 0:
-        neighbors.append((r, c - 1))
-    # Right
-    if c + 1 < cols and grid[r][c + 1] == 0:
-        neighbors.append((r, c + 1))
-
+    directions = [(0,1), (0,-1), (1,0), (-1,0)]  #right,left,down,up
+    for dr, dc in directions:
+        nr, nc = r + dr, c + dc
+        if 0 <= nr < len(grid_map) and 0 <= nc < len(grid_map[0]) and grid_map[nr][nc] == 0: #check if the neighbours are valid and not occupied
+            neighbors.append((nr, nc))
     return neighbors
 
+#store each cell's parent and trace back the path from goal to start point
+def reconstruct_path(parent, end):
+    path = [end]
+    while end in parent:
+        end = parent[end]
+        path.append(end)
+    return list(reversed(path))
 
-def reconstruct_path(came_from, current):
-    """Rebuild the path from start to goal using the came_from map."""
-    path = [current]
-    while current in came_from:
-        current = came_from[current]
-        path.append(current)
-    path.reverse()
-    return path
+#A* algorithm implementation
+def astar(start_point, goal_point, grid_map):
+    open_list = []                 #Min heap priority queue sorted by f=g+h
+    heapq.heappush(open_list, (0, start_point))
 
+    g_score = {start_point: 0}           #distance from start i.e g
+    parent = {}                  
 
-def astar(start_point, goal_point, grid):
-    """
-    A* search on a grid.
+    while open_list:
+        _, current = heapq.heappop(open_list)
 
-    Inputs:
-        start_point: (row, col)
-        goal_point: (row, col)
-        grid: 2D list with 0 = free, 1 = obstacle
+        if current == goal_point:        #if current cell is goal_point
+            return reconstruct_path(parent, current)
 
-    Output:
-        path: list of (row, col) from start to goal, or None if no path.
-    """
+        else:                            #otherwise check the neighbours
+            for neighbor in get_neighbors(current, grid_map):    
+                tentative_g = g_score[current] + 1   #assuming cost of movement between cells is 1
 
-    open_set = [start_point]       # cells to be evaluated
-    came_from = {}                 # child -> parent
-    g_score = {start_point: 0}     # cost from start to this cell
+                if neighbor not in g_score or tentative_g < g_score[neighbor]:   #cheaper path found
+                    g_score[neighbor] = tentative_g
+                    f = tentative_g + heuristic(neighbor, goal_point)  #f = g+h
+                    heapq.heappush(open_list, (f, neighbor))
+                    parent[neighbor] = current
 
-    while open_set:
-        # Pick the cell in open_set with the lowest f = g + h
-        current = None
-        current_f = None
-        for cell in open_set:
-            g = g_score.get(cell, float("inf"))
-            h = manhattan(cell, goal_point)
-            f = g + h
-            if current is None or f < current_f:
-                current = cell
-                current_f = f
+    return None  #No path found
 
-        # If we reached the goal, reconstruct the path
-        if current == goal_point:
-            return reconstruct_path(came_from, current)
+#visualise the found path using A* search
+def visualize(grid, path):
+    visual = [row[:] for row in grid]
 
-        # Move current from open_set to closed_set (implicitly, by removal)
-        open_set.remove(current)
+    if path is not None:
+        for (r, c) in path:
+            visual[r][c] = '-' 
 
-        # Check all neighbors
-        for neighbor in get_neighbors(current, grid):
-            tentative_g = g_score[current] + 1  # cost between neighbors is 1
+    print("\nVisual Output")
+    for row in visual:
+        print(" ".join(str(x) for x in row))
+    print()
 
-            # If this is a better path to neighbor, record it
-            if tentative_g < g_score.get(neighbor, float("inf")):
-                came_from[neighbor] = current
-                g_score[neighbor] = tentative_g
-                if neighbor not in open_set:
-                    open_set.append(neighbor)
-
-    # No path found
-    return None
 
 
 if __name__ == "__main__":
-    # Example from the problem statement
-    grid = [
-        [0, 0, 0, 0, 0],
-        [0, 1, 1, 1, 0],
-        [0, 1, 0, 0, 0],
-        [0, 1, 1, 1, 0],
-        [0, 0, 0, 0, 0]
+    grid_map = [
+        [0,0,0,0,0,0,0,0,0,0],
+        [0,1,1,1,1,1,1,1,1,0],
+        [0,1,0,0,0,0,0,0,1,0],
+        [0,1,0,1,1,1,1,0,1,0],
+        [0,1,0,1,0,0,1,0,1,0],
+        [0,1,0,1,0,1,1,0,1,0],
+        [0,1,0,1,0,0,0,0,1,0],
+        [0,1,0,1,1,1,1,1,1,0],
+        [0,0,0,0,0,0,0,0,0,0],
+        [0,1,1,1,1,1,1,1,1,0]
     ]
 
     start_point = (0, 0)
-    goal_point = (2, 2)
+    goal_point = (2, 7)
 
-    path = astar(start_point, goal_point, grid)
+    result_path = astar(start_point, goal_point, grid_map)
 
-    print("Grid:")
-    for row in grid:
+    print("Map:")
+    for row in grid_map:
         print(row)
+
     print("\nStart:", start_point)
     print("Goal: ", goal_point)
 
-    print("\nPath:")
-    print(path)
+    print("Path:", result_path)
+    visualize(grid_map, result_path)
+
